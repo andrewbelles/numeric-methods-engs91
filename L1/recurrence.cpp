@@ -33,20 +33,15 @@ public:
 
   Bessel(
       std::array<double, 3> x_values, 
-      std::pair<double, double> ic, 
-      uint32_t N=50,
-      bool forward=false
+      std::array<std::pair<double, double>, 3> ic, 
+      uint32_t N,
+      bool forward
   ) : forward_(forward), initial_conditions_(ic), N_(N), x_values_(x_values) {
-      computed.emplace_back(ic.first); 
-      computed.emplace_back(ic.second);
 
       for (auto& x : x_values) {
         real_.push_back(besselj(x, N));
       }
   }
-
-  void set_forward(bool forward) { forward_ = forward; }
-  void set_ic(std::pair<double, double> ic) { initial_conditions_ = ic; }
 
   void 
   run() 
@@ -56,7 +51,7 @@ public:
   }
 
 private: 
-  std::pair<double, double> initial_conditions_; // J_0,  J_1 
+  std::array<std::pair<double, double>, 3> initial_conditions_; // J_0,  J_1 
   bool forward_; 
   uint32_t N_; 
   std::vector<std::vector<double>> real_; 
@@ -83,8 +78,8 @@ private:
     for (int i(0); i < 3; i++) {
       x = x_values_[i];
       if ( forward_ ) {
-        computed[i][0] = initial_conditions_.first; 
-        computed[i][1] = initial_conditions_.second; 
+        computed[i][0] = initial_conditions_[i].first; 
+        computed[i][1] = initial_conditions_[i].second; 
 
         for (uint32_t j(1); j < N_ - 1; j++) {
           C = (2.0 * j) / x; 
@@ -93,10 +88,10 @@ private:
         }
 
       } else { // from iter downto 0 
-        computed[i][N_ - 2] = initial_conditions_.first; 
-        computed[i][N_ - 1] = initial_conditions_.second; 
+        computed[i][N_ - 2] = initial_conditions_[i].first; 
+        computed[i][N_ - 1] = initial_conditions_[i].second; 
 
-        for (uint32_t j(N_ - 1); j > 0; j++) {
+        for (uint32_t j(N_ - 2); j > 0; j--) {
           C = (2.0 * j) / x; 
           next = C * computed[i][j] - computed[i][j + 1];
           computed[i][j - 1] = next;  
@@ -126,7 +121,7 @@ private:
 int main(int argc, char* argv[]) 
 {
   std::pair<double, double> ic(0.0, 0.0);
-  std::vector<std::pair<double, double>> ics;
+  std::array<std::pair<double, double>, 3> ics;
   double x = 0.0; 
   int forward = 0; 
   std::array<double, 3> x_values;
@@ -156,7 +151,7 @@ int main(int argc, char* argv[])
       std::cerr << "Expects initial conditions off stdin\n";
       return 4;
     } else {
-      ics.push_back(ic);
+      ics[i] = ic;
     }
   }
 
@@ -165,7 +160,7 @@ int main(int argc, char* argv[])
   }
   std::cout << '\n';
 
-  Bessel bessel = Bessel(x_values, ic, 50, forward);  
+  Bessel bessel = Bessel(x_values, ics, 51, forward);  
   bessel.run();
 
   for (auto& x : x_values) {
